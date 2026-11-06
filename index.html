@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SalesPulse Analytics &mdash; Executive Sales Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Chart.js CDN for interactive visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- Top Navigation / Header -->
+    <header class="dashboard-header">
+      <div class="header-brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+            <polyline points="16 7 22 7 22 13"></polyline>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title-wrap">
+            <h1 class="brand-title">SalesPulse Analytics</h1>
+            <span class="live-status-pill"><span class="live-dot"></span> Live Local Data</span>
+          </div>
+          <p class="brand-subtitle">Executive revenue telemetry, pipeline performance &amp; transaction ledger</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Currency Selector -->
+        <div class="currency-selector-wrapper">
+          <label for="currencySelect" class="control-label">Currency</label>
+          <select id="currencySelect" class="form-select currency-select">
+            <option value="USD" selected>USD ($)</option>
+            <option value="EUR">EUR (&euro;)</option>
+            <option value="GBP">GBP (&pound;)</option>
+            <option value="JPY">JPY (&yen;)</option>
+            <option value="CAD">CAD (C$)</option>
+          </select>
+        </div>
+
+        <!-- Print Executive Report -->
+        <button id="printReportBtn" class="btn btn-secondary print-hidden" title="Print executive sales report">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+          <span>Print Report</span>
+        </button>
+
+        <!-- Import CSV -->
+        <label for="importCsvInput" class="btn btn-secondary print-hidden" style="cursor: pointer;" title="Import transactions from CSV">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <span>Import CSV</span>
+          <input type="file" id="importCsvInput" accept=".csv" style="display: none;">
+        </label>
+
+        <!-- Export CSV -->
+        <button id="exportCsvBtn" class="btn btn-secondary print-hidden" title="Export current sales to CSV">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Export CSV</span>
+        </button>
+
+        <!-- Reset Sample Data -->
+        <button id="resetDemoBtn" class="btn btn-secondary print-hidden" title="Restore sample sales dataset">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+            <path d="M3 3v5h5"></path>
+          </svg>
+          <span>Reset Demo</span>
+        </button>
+
+        <!-- Add Sale Button -->
+        <button id="openAddModalBtn" class="btn btn-primary print-hidden" title="Record a new transaction">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>New Sale</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Filter Bar -->
+    <section class="filters-card print-hidden">
+      <div class="filters-grid">
+        <!-- Date Preset Filter -->
+        <div class="filter-group date-presets-group">
+          <label class="filter-label">Timeframe</label>
+          <div class="preset-buttons" id="timeframePresets">
+            <button class="preset-btn active" data-timeframe="all">All Time</button>
+            <button class="preset-btn" data-timeframe="today">Today</button>
+            <button class="preset-btn" data-timeframe="last7">Last 7 Days</button>
+            <button class="preset-btn" data-timeframe="last30">Last 30 Days</button>
+            <button class="preset-btn" data-timeframe="thisMonth">This Month</button>
+            <button class="preset-btn" data-timeframe="thisYear">This Year</button>
+            <button class="preset-btn" data-timeframe="custom">Custom</button>
+          </div>
+        </div>
+
+        <!-- Custom Date Range -->
+        <div class="filter-group custom-date-group" id="customDateContainer" style="display: none;">
+          <label class="filter-label">Custom Date Range</label>
+          <div class="date-inputs-row">
+            <input type="date" id="startDateInput" class="form-input">
+            <span class="date-separator">to</span>
+            <input type="date" id="endDateInput" class="form-input">
+          </div>
+        </div>
+
+        <!-- Category Filter -->
+        <div class="filter-group">
+          <label for="categoryFilter" class="filter-label">Category</label>
+          <select id="categoryFilter" class="form-select">
+            <option value="all">All Categories</option>
+            <option value="Enterprise Software">Enterprise Software</option>
+            <option value="Cloud Infrastructure">Cloud Infrastructure</option>
+            <option value="Hardware &amp; Devices">Hardware &amp; Devices</option>
+            <option value="Professional Services">Professional Services</option>
+            <option value="Cybersecurity">Cybersecurity</option>
+            <option value="Consumer Electronics">Consumer Electronics</option>
+          </select>
+        </div>
+
+        <!-- Channel Filter -->
+        <div class="filter-group">
+          <label for="channelFilter" class="filter-label">Sales Channel</label>
+          <select id="channelFilter" class="form-select">
+            <option value="all">All Channels</option>
+            <option value="Direct Sales">Direct Sales</option>
+            <option value="Online / Web">Online / Web</option>
+            <option value="Partner Network">Partner Network</option>
+            <option value="Inbound SDR">Inbound SDR</option>
+            <option value="Enterprise RFP">Enterprise RFP</option>
+          </select>
+        </div>
+
+        <!-- Status Filter -->
+        <div class="filter-group">
+          <label for="statusFilter" class="filter-label">Status</label>
+          <select id="statusFilter" class="form-select">
+            <option value="all">All Statuses</option>
+            <option value="Completed">Completed</option>
+            <option value="Pending">Pending</option>
+            <option value="Refunded">Refunded</option>
+          </select>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="filter-group search-filter-group">
+          <label for="searchInput" class="filter-label">Search Records</label>
+          <div class="search-input-wrapper">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="searchInput" class="form-input search-input" placeholder="Search customer, product, invoice #...">
+            <button id="clearSearchBtn" class="clear-search-btn" title="Clear search" style="display: none;">&times;</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Key Metrics / KPI Cards -->
+    <section class="kpi-grid">
+      <!-- Total Revenue -->
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">Total Revenue</span>
+          <div class="kpi-icon-badge badge-blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"></line>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="kpi-value-row">
+          <span class="kpi-value" id="kpiRevenue">$0.00</span>
+          <span class="trend-badge trend-up" id="kpiRevenueTrend">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+            <span id="kpiRevenueTrendText">+14.8%</span>
+          </span>
+        </div>
+        <div class="kpi-footer">
+          <span class="kpi-subtext" id="kpiRevenueSub">Completed revenue across selected range</span>
+        </div>
+      </div>
+
+      <!-- Net Profit -->
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">Est. Net Profit</span>
+          <div class="kpi-icon-badge badge-emerald">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="kpi-value-row">
+          <span class="kpi-value" id="kpiProfit">$0.00</span>
+          <span class="trend-badge trend-up" id="kpiProfitMargin">72.0% margin</span>
+        </div>
+        <div class="kpi-footer">
+          <span class="kpi-subtext">Estimated after cost of goods &amp; operations</span>
+        </div>
+      </div>
+
+      <!-- Closed Orders / Deals -->
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">Completed Orders</span>
+          <div class="kpi-icon-badge badge-purple">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="21" r="1"></circle>
+              <circle cx="20" cy="21" r="1"></circle>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="kpi-value-row">
+          <span class="kpi-value" id="kpiOrders">0</span>
+          <span class="trend-badge trend-neutral" id="kpiPendingCount">0 pending</span>
+        </div>
+        <div class="kpi-footer">
+          <span class="kpi-subtext" id="kpiOrdersSub">Total successfully executed transactions</span>
+        </div>
+      </div>
+
+      <!-- Average Order Value (AOV) -->
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">Avg. Order Value</span>
+          <div class="kpi-icon-badge badge-amber">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+              <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="kpi-value-row">
+          <span class="kpi-value" id="kpiAov">$0.00</span>
+          <span class="trend-badge trend-up" id="kpiAovTrend">+4.2%</span>
+        </div>
+        <div class="kpi-footer">
+          <span class="kpi-subtext">Average ticket size per closed deal</span>
+        </div>
+      </div>
+
+      <!-- Sales Target / Quota -->
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">Sales Target Attainment</span>
+          <button id="editQuotaBtn" class="quota-edit-btn print-hidden" title="Click to adjust quota target">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="kpi-value-row">
+          <span class="kpi-value" id="kpiQuotaPercent">0%</span>
+          <span class="trend-badge trend-neutral" id="kpiQuotaTarget">Goal: $250k</span>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill" id="kpiQuotaProgressBar" style="width: 0%;"></div>
+        </div>
+        <div class="kpi-footer">
+          <span class="kpi-subtext" id="kpiQuotaSub">Remaining to target: $0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Insights Banner -->
+    <section class="insights-banner">
+      <div class="insight-item">
+        <span class="insight-label">Highest Closed Deal:</span>
+        <strong class="insight-value" id="insightMaxSale">$0.00</strong>
+        <span class="insight-sub" id="insightMaxCustomer">N/A</span>
+      </div>
+      <div class="insight-divider"></div>
+      <div class="insight-item">
+        <span class="insight-label">Top Channel:</span>
+        <strong class="insight-value" id="insightTopChannel">N/A</strong>
+        <span class="insight-sub" id="insightTopChannelAmt">$0.00</span>
+      </div>
+      <div class="insight-divider"></div>
+      <div class="insight-item">
+        <span class="insight-label">Refund Ratio:</span>
+        <strong class="insight-value" id="insightRefundRate">0.0%</strong>
+        <span class="insight-sub" id="insightRefundAmt">$0.00 refunded</span>
+      </div>
+      <div class="insight-divider"></div>
+      <div class="insight-item">
+        <span class="insight-label">Pipeline In-Flight:</span>
+        <strong class="insight-value" id="insightPendingValue">$0.00</strong>
+        <span class="insight-sub" id="insightPendingOrders">0 pending deals</span>
+      </div>
+    </section>
+
+    <!-- Primary Charts Section -->
+    <section class="charts-row">
+      <!-- Main Revenue Timeline -->
+      <div class="chart-card chart-card-large">
+        <div class="chart-card-header">
+          <div>
+            <h2 class="chart-title">Revenue &amp; Profit Trajectory</h2>
+            <p class="chart-subtitle">Aggregated timeline performance with volume comparison</p>
+          </div>
+          <div class="chart-controls print-hidden">
+            <div class="pill-toggle" id="timelineGrouping">
+              <button class="pill-btn" data-group="daily">Day</button>
+              <button class="pill-btn active" data-group="monthly">Month</button>
+            </div>
+          </div>
+        </div>
+        <div class="chart-canvas-wrapper" id="timelineChartWrapper">
+          <canvas id="revenueTimelineChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Category Breakdown Doughnut -->
+      <div class="chart-card chart-card-small">
+        <div class="chart-card-header">
+          <div>
+            <h2 class="chart-title">Revenue by Category</h2>
+            <p class="chart-subtitle">Share of sales across product sectors</p>
+          </div>
+        </div>
+        <div class="chart-canvas-wrapper doughnut-wrapper" id="categoryChartWrapper">
+          <canvas id="categoryChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Secondary Analytics Section -->
+    <section class="charts-row">
+      <!-- Channel Distribution Bar Chart -->
+      <div class="chart-card chart-card-half">
+        <div class="chart-card-header">
+          <div>
+            <h2 class="chart-title">Performance by Sales Channel</h2>
+            <p class="chart-subtitle">Comparing revenue generation across channels</p>
+          </div>
+        </div>
+        <div class="chart-canvas-wrapper" id="channelChartWrapper">
+          <canvas id="channelChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Top Selling Products Leaderboard -->
+      <div class="chart-card chart-card-half">
+        <div class="chart-card-header">
+          <div>
+            <h2 class="chart-title">Top Performing Solutions</h2>
+            <p class="chart-subtitle">Ranked by revenue contribution &amp; unit volume</p>
+          </div>
+        </div>
+        <div class="leaderboard-container" id="topProductsList">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Transactions Data Table Section -->
+    <section class="table-card">
+      <div class="table-card-header">
+        <div class="table-header-left">
+          <h2 class="table-title">Sales Transactions Ledger</h2>
+          <span class="table-count-badge" id="recordsCountBadge">Showing 0 records</span>
+        </div>
+        <div class="table-header-right print-hidden">
+          <div class="rows-per-page">
+            <label for="pageSizeSelect">Show</label>
+            <select id="pageSizeSelect" class="form-select-sm">
+              <option value="10" selected>10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table" id="salesTable">
+          <thead>
+            <tr>
+              <th data-sort="id" class="sortable">Invoice # <span class="sort-icon">&updownarrow;</span></th>
+              <th data-sort="date" class="sortable">Date <span class="sort-icon">&updownarrow;</span></th>
+              <th data-sort="customer" class="sortable">Customer <span class="sort-icon">&updownarrow;</span></th>
+              <th data-sort="product" class="sortable">Product / Solution <span class="sort-icon">&updownarrow;</span></th>
+              <th data-sort="category" class="sortable">Category <span class="sort-icon">&updownarrow;</span></th>
+              <th data-sort="channel" class="sortable">Channel <span class="sort-icon">&updownarrow;</span></th>
+              <th data-sort="amount" class="sortable text-right">Amount <span class="sort-icon">&updownarrow;</span></th>
+              <th data-sort="status" class="sortable">Status <span class="sort-icon">&updownarrow;</span></th>
+              <th class="text-center print-hidden">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="salesTableBody">
+            <!-- Dynamically populated rows -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty State -->
+      <div id="tableEmptyState" class="empty-state" style="display: none;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <p class="empty-title">No transactions match your filters</p>
+        <p class="empty-desc">Try resetting your date range, clearing search terms, or recording a new transaction.</p>
+        <button id="resetFiltersEmptyBtn" class="btn btn-secondary">Reset All Filters</button>
+      </div>
+
+      <!-- Table Pagination Footer -->
+      <div class="table-pagination print-hidden">
+        <div class="pagination-info" id="paginationInfo">
+          Showing 1 to 10 of 0 entries
+        </div>
+        <div class="pagination-controls" id="paginationControls">
+          <!-- Dynamically generated pagination buttons -->
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Add / Edit Transaction Modal -->
+  <div class="modal-overlay" id="saleModal" style="display: none;">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalTitle">Record New Transaction</h3>
+        <button type="button" class="modal-close-btn" id="closeModalBtn">&times;</button>
+      </div>
+      <form id="saleForm" class="modal-form">
+        <input type="hidden" id="saleIdInput">
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="customerNameInput" class="form-label required">Customer / Organization</label>
+            <input type="text" id="customerNameInput" class="form-input" placeholder="e.g. Acme Corporation" required>
+          </div>
+          <div class="form-group flex-1">
+            <label for="customerEmailInput" class="form-label">Contact Email</label>
+            <input type="email" id="customerEmailInput" class="form-input" placeholder="e.g. procurement@acme.com">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="productNameInput" class="form-label required">Product / Solution Name</label>
+            <input type="text" id="productNameInput" class="form-input" placeholder="e.g. Enterprise Cloud Suite" required>
+          </div>
+          <div class="form-group flex-1">
+            <label for="categoryInput" class="form-label required">Category</label>
+            <select id="categoryInput" class="form-select" required>
+              <option value="Enterprise Software">Enterprise Software</option>
+              <option value="Cloud Infrastructure">Cloud Infrastructure</option>
+              <option value="Hardware &amp; Devices">Hardware &amp; Devices</option>
+              <option value="Professional Services">Professional Services</option>
+              <option value="Cybersecurity">Cybersecurity</option>
+              <option value="Consumer Electronics">Consumer Electronics</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="saleAmountInput" class="form-label required">Amount</label>
+            <div class="input-with-prefix">
+              <span class="input-prefix" id="formCurrencyPrefix">$</span>
+              <input type="number" id="saleAmountInput" class="form-input" placeholder="0.00" step="0.01" min="0.01" required>
+            </div>
+          </div>
+          <div class="form-group flex-1">
+            <label for="saleDateInput" class="form-label required">Transaction Date</label>
+            <input type="date" id="saleDateInput" class="form-input" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="channelInput" class="form-label required">Sales Channel</label>
+            <select id="channelInput" class="form-select" required>
+              <option value="Direct Sales">Direct Sales</option>
+              <option value="Online / Web">Online / Web</option>
+              <option value="Partner Network">Partner Network</option>
+              <option value="Inbound SDR">Inbound SDR</option>
+              <option value="Enterprise RFP">Enterprise RFP</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label for="statusInput" class="form-label required">Payment Status</label>
+            <select id="statusInput" class="form-select" required>
+              <option value="Completed">Completed</option>
+              <option value="Pending">Pending</option>
+              <option value="Refunded">Refunded</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="paymentMethodInput" class="form-label">Payment Method</label>
+            <select id="paymentMethodInput" class="form-select">
+              <option value="ACH / Bank Wire">ACH / Bank Wire</option>
+              <option value="Credit Card">Credit Card</option>
+              <option value="Corporate Invoice">Corporate Invoice (Net 30)</option>
+              <option value="Stripe / Digital">Stripe / Digital</option>
+              <option value="Letter of Credit">Letter of Credit</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label for="notesInput" class="form-label">Internal Notes / Deal ID</label>
+            <input type="text" id="notesInput" class="form-input" placeholder="e.g. Annual renewal, 10% discount applied">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancelModalBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveSaleBtn">Save Transaction</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay" id="deleteConfirmModal" style="display: none;">
+    <div class="modal-box modal-box-sm">
+      <div class="modal-header">
+        <h3 class="modal-title">Confirm Deletion</h3>
+        <button type="button" class="modal-close-btn" id="closeDeleteModalBtn">&times;</button>
+      </div>
+      <div class="modal-body-p">
+        <p>Are you sure you want to delete transaction <strong id="deleteTargetInvoice">#INV-0000</strong>?</p>
+        <p class="modal-warning-text">This action cannot be undone and will permanently update your web storage.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancelDeleteBtn">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete Record</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Adjust Quota Target Modal -->
+  <div class="modal-overlay" id="quotaModal" style="display: none;">
+    <div class="modal-box modal-box-sm">
+      <div class="modal-header">
+        <h3 class="modal-title">Adjust Sales Quota Target</h3>
+        <button type="button" class="modal-close-btn" id="closeQuotaModalBtn">&times;</button>
+      </div>
+      <form id="quotaForm" class="modal-form">
+        <div class="form-group">
+          <label for="quotaTargetInput" class="form-label required">Target Revenue (USD $)</label>
+          <input type="number" id="quotaTargetInput" class="form-input" min="1000" step="1000" required>
+          <p class="kpi-subtext" style="margin-top: 4px;">Sets the baseline quota goal for progress calculations.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancelQuotaBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary">Update Quota</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Dashboard JavaScript Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
